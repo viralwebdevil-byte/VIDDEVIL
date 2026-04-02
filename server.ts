@@ -18,16 +18,10 @@ async function startServer() {
   // Initialize DB
   initDb();
 
-  // Ensure uploads directory exists (skip or use /tmp in serverless)
-  const isServerless = process.env.VERCEL || process.env.NODE_ENV === 'production';
-  const uploadDir = isServerless ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'uploads');
-  
-  try {
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-  } catch (error) {
-    console.warn('Could not create upload directory:', error);
+  // Ensure uploads directory exists
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
   }
 
   app.use(cors());

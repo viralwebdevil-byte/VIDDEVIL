@@ -15,13 +15,7 @@ router.post('/login', async (req, res) => {
       where: eq(users.username, username),
     });
 
-    if (!user) {
-      console.log(`Login failed: User ${username} not found`);
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    if (!bcrypt.compareSync(password, user.password)) {
-      console.log(`Login failed: Incorrect password for ${username}`);
+    if (!user || !bcrypt.compareSync(password, user.password)) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 

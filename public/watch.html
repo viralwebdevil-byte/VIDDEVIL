@@ -67,12 +67,7 @@
 
             try {
                 const res = await fetch(`/api/videos/${videoId}`);
-                const contentType = res.headers.get('content-type');
-                
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Server returned non-JSON response');
-                }
-
+                if (!res.ok) throw new Error('Video not found');
                 const video = await res.json();
 
                 document.getElementById('mainVideo').src = video.filePath;

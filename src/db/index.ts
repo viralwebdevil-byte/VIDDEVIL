@@ -2,24 +2,8 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import * as schema from './schema.ts';
 import bcrypt from 'bcryptjs';
-import path from 'path';
-import fs from 'fs';
 
-// For Vercel/Serverless: Use /tmp for the database as the rest of the filesystem is read-only
-const isServerless = process.env.VERCEL || process.env.NODE_ENV === 'production';
-const dbPath = isServerless ? path.join('/tmp', 'sqlite.db') : path.join(process.cwd(), 'sqlite.db');
-
-let sqlite: any;
-try {
-  sqlite = new Database(dbPath);
-  console.log(`Database initialized at: ${dbPath}`);
-} catch (error) {
-  console.error('Failed to initialize database:', error);
-  // Fallback to in-memory if file fails (useful for some environments, though data won't persist)
-  sqlite = new Database(':memory:');
-  console.log('Falling back to in-memory database');
-}
-
+const sqlite = new Database('sqlite.db');
 export const db = drizzle(sqlite, { schema });
 
 // Initialize database (simple way for this environment)
