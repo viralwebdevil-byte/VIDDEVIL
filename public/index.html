@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Library Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.344.0/font/lucide.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .video-card:hover .play-overlay { opacity: 1; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2">
+            <div class="bg-indigo-600 p-2 rounded-lg">
+                <i class="lucide-play w-6 h-6 text-white"></i>
+            </div>
+            <span class="text-xl font-bold tracking-tight">VideoPortal</span>
+        </a>
+
+        <div class="flex-1 max-w-xl mx-8 relative">
+            <i class="lucide-search absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+            <input
+                id="searchInput"
+                type="text"
+                placeholder="Search videos..."
+                class="w-full bg-slate-800 border-none rounded-full py-2 pl-10 pr-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+            >
+        </div>
+
+        <div class="flex items-center gap-4" id="navAuth">
+            <a href="/admin.html" class="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
+                <i class="lucide-user w-4 h-4"></i>
+                <span>Admin</span>
+            </a>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6">
+        <header class="mb-12">
+            <h2 class="text-4xl font-bold tracking-tight mb-2">Explore Videos</h2>
+            <p class="text-slate-400">Discover the latest uploads and trending content.</p>
+        </header>
+
+        <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Videos will be injected here -->
+        </div>
+
+        <div id="noResults" class="hidden text-center py-20">
+            <div class="bg-slate-900 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="lucide-search w-8 h-8 text-slate-600"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">No videos found</h3>
+            <p class="text-slate-500">Try adjusting your search or filters.</p>
+        </div>
+    </main>
+
+    <script>
+        async function fetchVideos(query = '') {
+            const grid = document.getElementById('videoGrid');
+            const noResults = document.getElementById('noResults');
+            grid.innerHTML = '';
+            
+            try {
+                const res = await fetch(`/api/videos?q=${query}`);
+                const videos = await res.json();
+                
+                if (videos.length === 0) {
+                    noResults.classList.remove('hidden');
+                    return;
+                }
+                
+                noResults.classList.add('hidden');
+                videos.forEach(video => {
+                    const card = document.createElement('div');
+                    card.className = 'video-card group bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden hover:border-indigo-500/50 transition-all shadow-lg';
+                    card.innerHTML = `
+                        <div class="aspect-video bg-slate-800 relative cursor-pointer overflow-hidden" onclick="window.location.href='/watch.html?id=${video.id}'">
+                            <div class="play-overlay absolute inset-0 flex items-center justify-center opacity-0 transition-opacity bg-black/40 z-10">
+                                <i class="lucide-play w-10 h-10 text-white fill-white"></i>
+                            </div>
+                            <div class="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-slate-900/20"></div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-semibold line-clamp-1 cursor-pointer hover:text-indigo-400 transition-colors mb-2" onclick="window.location.href='/watch.html?id=${video.id}'">
+                                ${video.title}
+                            </h3>
+                            <p class="text-sm text-slate-400 line-clamp-2 mb-4 h-10">
+                                ${video.description || 'No description provided.'}
+                            </p>
+                            <div class="flex items-center justify-between text-xs text-slate-500">
+                                <span>${video.viewCount || 0} views</span>
+                                <span>${new Date(video.createdAt).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            fetchVideos(e.target.value);
+        });
+
+        fetchVideos();
+    </script>
+</body>
+</html>

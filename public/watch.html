@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Video - VideoPortal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.344.0/font/lucide.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <nav class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-4">
+        <a href="/" class="flex items-center gap-2 w-fit">
+            <div class="bg-indigo-600 p-2 rounded-lg">
+                <i class="lucide-play w-6 h-6 text-white"></i>
+            </div>
+            <span class="text-xl font-bold tracking-tight">VideoPortal</span>
+        </a>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6">
+        <div id="videoContainer" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
+                    <video id="mainVideo" controls autoPlay class="w-full h-full"></video>
+                </div>
+                <div>
+                    <h1 id="videoTitle" class="text-3xl font-bold mb-2"></h1>
+                    <div class="flex items-center gap-6 text-slate-400 text-sm mb-4">
+                        <div class="flex items-center gap-1">
+                            <i class="lucide-eye w-4 h-4"></i>
+                            <span id="viewCount"></span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <i class="lucide-calendar w-4 h-4"></i>
+                            <span id="uploadDate"></span>
+                        </div>
+                    </div>
+                    <p id="videoDesc" class="text-slate-300 leading-relaxed bg-slate-900 p-4 rounded-xl border border-slate-800"></p>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold px-2">Up Next</h3>
+                <div id="upNext" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <div id="loading" class="text-center py-20">
+            <div class="animate-spin w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p class="text-slate-400">Loading video...</p>
+        </div>
+    </main>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const videoId = urlParams.get('id');
+
+        async function loadVideo() {
+            if (!videoId) {
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/videos/${videoId}`);
+                if (!res.ok) throw new Error('Video not found');
+                const video = await res.json();
+
+                document.getElementById('mainVideo').src = video.filePath;
+                document.getElementById('videoTitle').textContent = video.title;
+                document.getElementById('videoDesc').textContent = video.description || 'No description.';
+                document.getElementById('viewCount').textContent = `${video.viewCount} views`;
+                document.getElementById('uploadDate').textContent = new Date(video.createdAt).toLocaleDateString();
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('videoContainer').classList.remove('hidden');
+
+                loadRecommendations();
+            } catch (error) {
+                console.error(error);
+                alert('Error loading video');
+            }
+        }
+
+        async function loadRecommendations() {
+            const res = await fetch('/api/videos?limit=5');
+            const videos = await res.json();
+            const container = document.getElementById('upNext');
+            
+            videos.filter(v => v.id != videoId).forEach(video => {
+                const item = document.createElement('div');
+                item.className = 'flex gap-3 group cursor-pointer p-2 rounded-xl hover:bg-slate-900 transition-all';
+                item.onclick = () => window.location.href = `/watch.html?id=${video.id}`;
+                item.innerHTML = `
+                    <div class="w-32 aspect-video bg-slate-800 rounded-lg overflow-hidden relative shrink-0">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                            <i class="lucide-play w-6 h-6 text-white fill-white"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium line-clamp-2 group-hover:text-indigo-400 transition-colors">${video.title}</h4>
+                        <p class="text-xs text-slate-500 mt-1">${video.viewCount} views</p>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        loadVideo();
+    </script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - VideoPortal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.344.0/font/lucide.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <nav class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2">
+            <div class="bg-indigo-600 p-2 rounded-lg">
+                <i class="lucide-play w-6 h-6 text-white"></i>
+            </div>
+            <span class="text-xl font-bold tracking-tight">VideoPortal Admin</span>
+        </a>
+        <button id="logoutBtn" class="hidden text-slate-400 hover:text-white transition-colors">
+            <i class="lucide-log-out w-5 h-5"></i>
+        </button>
+    </nav>
+
+    <main class="max-w-4xl mx-auto p-6">
+        <!-- Login Section -->
+        <div id="loginSection" class="mt-20 max-w-md mx-auto bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl">
+            <h2 class="text-2xl font-bold mb-6">Admin Login</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Username</label>
+                    <input type="text" id="username" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Password</label>
+                    <input type="password" id="password" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-semibold transition-colors mt-4">Sign In</button>
+            </form>
+            <p class="mt-4 text-xs text-slate-500 text-center">Default: admin / admin</p>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboardSection" class="hidden space-y-8">
+            <div class="flex items-center justify-between">
+                <h2 class="text-3xl font-bold">Dashboard</h2>
+                <button onclick="document.getElementById('uploadModal').classList.remove('hidden')" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
+                    <i class="lucide-upload w-4 h-4"></i>
+                    <span>Upload Video</span>
+                </button>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-800/50 text-slate-400 text-sm">
+                        <tr>
+                            <th class="px-6 py-4 font-medium">Video</th>
+                            <th class="px-6 py-4 font-medium">Views</th>
+                            <th class="px-6 py-4 font-medium">Date</th>
+                            <th class="px-6 py-4 font-medium text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="videoTableBody" class="divide-y divide-slate-800">
+                        <!-- Rows injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="this.parentElement.classList.add('hidden')"></div>
+        <div class="relative bg-slate-900 border border-slate-800 p-8 rounded-3xl w-full max-w-lg shadow-2xl">
+            <h2 class="text-2xl font-bold mb-6">Upload New Video</h2>
+            <form id="uploadForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Title</label>
+                    <input name="title" type="text" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Description</label>
+                    <textarea name="description" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Video File</label>
+                    <input name="video" type="file" accept="video/*" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                </div>
+                <button type="submit" id="uploadBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-semibold transition-colors mt-4">Start Upload</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let user = JSON.parse(localStorage.getItem('user'));
+
+        function checkAuth() {
+            if (user) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                document.getElementById('logoutBtn').classList.remove('hidden');
+                loadVideos();
+            }
+        }
+
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: e.target.username.value,
+                    password: e.target.password.value
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+                user = data.user;
+                checkAuth();
+            } else {
+                alert(data.message);
+            }
+        };
+
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.removeItem('user');
+            window.location.reload();
+        };
+
+        async function loadVideos() {
+            const res = await fetch('/api/videos');
+            const videos = await res.json();
+            const tbody = document.getElementById('videoTableBody');
+            tbody.innerHTML = '';
+            
+            videos.forEach(video => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/30 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 aspect-video bg-slate-800 rounded"></div>
+                            <span class="font-medium">${video.title}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-400">${video.viewCount}</td>
+                    <td class="px-6 py-4 text-slate-400">${new Date(video.createdAt).toLocaleDateString()}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteVideo(${video.id})" class="text-slate-500 hover:text-red-500 transition-colors">
+                            <i class="lucide-trash-2 w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('uploadBtn');
+            btn.disabled = true;
+            btn.textContent = 'Uploading...';
+            
+            const formData = new FormData(e.target);
+            const res = await fetch('/api/videos', {
+                method: 'POST',
+                body: formData
+            });
+            
+            btn.disabled = false;
+            btn.textContent = 'Start Upload';
+            
+            if (res.ok) {
+                document.getElementById('uploadModal').classList.add('hidden');
+                loadVideos();
+            } else {
+                const data = await res.json();
+                alert(data.message);
+            }
+        };
+
+        async function deleteVideo(id) {
+            if (!confirm('Delete this video?')) return;
+            const res = await fetch(`/api/videos/${id}`, { method: 'DELETE' });
+            if (res.ok) loadVideos();
+        }
+
+        checkAuth();
+    </script>
+</body>
+</html>
