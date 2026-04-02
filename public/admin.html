@@ -107,21 +107,34 @@
 
         document.getElementById('loginForm').onsubmit = async (e) => {
             e.preventDefault();
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: e.target.username.value,
-                    password: e.target.password.value
-                })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                localStorage.setItem('user', JSON.stringify(data.user));
-                user = data.user;
-                checkAuth();
-            } else {
-                alert(data.message);
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: e.target.username.value,
+                        password: e.target.password.value
+                    })
+                });
+                
+                const contentType = res.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        user = data.user;
+                        checkAuth();
+                    } else {
+                        alert(data.message || 'Login failed');
+                    }
+                } else {
+                    const text = await res.text();
+                    console.error('Server returned non-JSON response:', text);
+                    alert('Server error. Please check the console or Vercel logs.');
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                alert('Network error or server is down.');
             }
         };
 

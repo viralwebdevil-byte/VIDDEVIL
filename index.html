@@ -67,6 +67,14 @@
             
             try {
                 const res = await fetch(`/api/videos?q=${query}`);
+                const contentType = res.headers.get('content-type');
+                
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await res.text();
+                    console.error('Non-JSON response:', text);
+                    return;
+                }
+
                 const videos = await res.json();
                 
                 if (videos.length === 0) {
